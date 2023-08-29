@@ -1,52 +1,38 @@
-from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.contrib.auth.models import AbstractUser
 
 class CustomUser(AbstractUser):
-    nickname = models.CharField(max_length=50)
-
-class Game(models.Model):
-    """
-    Represents a game instance in a tic-tac-toe game.
-    
-    Attributes:
-        date_created (DateTimeField): The date and time when the game was created.
-        date_updated (DateTimeField): The date and time when the game was last updated.
-        board (CharField): The state of the game board as a string.
-        player_x (ForeignKey): The player with 'X' symbol.
-        player_o (ForeignKey): The player with 'O' symbol.
-        winner (ForeignKey): The winner of the game. Can be null if there is no winner yet.
-    """
-    date_created = models.DateTimeField(auto_now_add=True)
-    date_updated = models.DateTimeField(auto_now=True)
-
-    board = models.CharField(max_length=9, default=" " * 9)
-    player_x = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='player_x_games')
-    player_o = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='player_o_games')
-    
-    winner = models.ForeignKey(CustomUser, null=True, blank=True, on_delete=models.SET_NULL, related_name='won_games')
-    
+    email = models.EmailField(unique=True)
+    password = models.CharField(max_length=128)  # Redefinir el campo password
+  # Redefinir el campo password
     def __str__(self):
-        """
-        Returns a string representation of the game instance.
-        
-        Returns:
-            str: A string showing the players and the state of the game board.
-        """
-        return f'{self.player_x} vs {self.player_o}, state="{self.board}"'
+        return self.username
 
-    @property
-    def get_winner_name(self):
-        """
-        Returns the username of the winner if there is one, otherwise returns None.
-        
-        Returns:
-            str or None: The username of the winner if there is one, otherwise None.
-        """
-        if self.winner:
-            return self.winner.username
-        return None
+class Jugador(models.Model):
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
+    simbolo = models.CharField(max_length=1, choices=[('X', 'X'), ('O', 'O')])
+    puntuacion = models.IntegerField(default=0)
 
-class Score(models.Model):
-    player = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='score')
-    total_games_played = models.PositiveIntegerField(default=0)
-    games_won = models.PositiveIntegerField(default=0)
+    def __str__(self):
+        return self.user.username
+
+class Partida(models.Model):
+    jugador_1 = models.ForeignKey(Jugador, on_delete=models.CASCADE, related_name='partidas_jugador_1')
+    jugador_2 = models.ForeignKey(Jugador, on_delete=models.CASCADE, related_name='partidas_jugador_2')
+    turno = models.ForeignKey(Jugador, on_delete=models.CASCADE, related_name='partidas_turno')
+    ganador = models.ForeignKey(Jugador, on_delete=models.SET_NULL, null=True, blank=True, related_name='partidas_ganadas')
+    fecha_inicio = models.DateTimeField(auto_now_add=True)
+    fecha_fin = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Partida entre {self.jugador_1} y {self.jugador_2}"
+
+class Movimiento(models.Model):
+    partida = models.ForeignKey(Partida, on_delete=models.CASCADE)
+    jugador = models.ForeignKey(Jugador, on_delete=models.CASCADE)
+    fila = models.IntegerField()
+    columna = models.IntegerField()
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Movimiento de {self.jugador} en ({self.fila}, {self.columna})"
