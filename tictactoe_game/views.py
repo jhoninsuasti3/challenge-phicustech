@@ -22,6 +22,9 @@ from django.views import View
 from django.views.generic import UpdateView, ListView, TemplateView, CreateView
 from django.urls import reverse
 
+from django.db.models import Q
+
+
 class RegisterUserAPIView(APIView):
 
     def get(self, request, *args, **kwargs):
@@ -50,15 +53,19 @@ class UserLoginAPIView(APIView):
             user = authenticate(username=username, password=password)
         if user:
             token, _ = Token.objects.get_or_create(user=user)
-            # Asociar el token al jugador correspondiente
-            jugador = Jugador.objects.get(user=user)
-            jugador.token = token
-            jugador.save()
+            #token.set_expires_at(datetime.datetime.now() + datetime.timedelta(minutes=10))
+            token.save()
+            # Asociar el token al usuario directamente
+            user.token = token
+            user.save()
             #Response({'user': user}, status=status.HTTP_200_OK)
             # CAMBIO: Devuelve un objeto Response con el status code HTTP_302 y la URL de la plantilla home.html en la cabecera Location.
             return redirect('home')  # Redirige a la vista de inicio de partida
+            Response({'user': user}, status=status.HTTP_200_OK)
         return render(request, 'login.html', {'error': 'Credenciales inválidas'})
         #return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+
+
 
 
 class UserLogoutAPIView(APIView):
@@ -85,30 +92,32 @@ class CustomUserListAPIView(APIView):
 def home_view(request):
     return render(request, 'home.html')
 
-class HomePageView(TemplateView):
+
+class HomePageView(View):
     template_name = "home.html"
 
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+        return render(request, self.template_name, context)
+
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['usuario_actual'] = self.request.user
-        print("-----------")
+        context = {}
+        # Obtener todos los usuarios
+        users = CustomUser.objects.all()
+        # Filtrar los usuarios que no tienen partidas activas
+        jugadores_sin_partida = []
+        for user in users:
+            if not Partida.objects.filter(Q(jugador_1__user=user) | Q(jugador_2__user=user), fecha_fin__isnull=True).exists():
+                jugadores_sin_partida.append(user)
+        
+        context['jugadores_disponibles'] = jugadores_sin_partida
+        jugadores_dispo = context['jugadores_disponibles'] = jugadores_sin_partida
+        context['usuario_actual'] = str(self.request.user)
+
         print(context)
         return context
 
 
-"""
-class HomePageView(LoginRequiredMixin, APIView):
-    def get(self, request, *args, **kwargs):
-        usuario_actual = request.user  # Obtiene el usuario autenticado
-        print("*****************"*10)
-        print(usuario_actual)
-        print("*****************"*10)
-        jugadores_disponibles = Jugador.objects.exclude(user=usuario_actual)
-        from pprint import pprint
-        return render(request, 'home.html', {'jugadores_disponibles': jugadores_disponibles, 'usuario_actual': usuario_actual})
-
-
-"""
 # APIS DE LOGICA DE JUEGO
 
 class IniciarPartidaAPIView(APIView):
