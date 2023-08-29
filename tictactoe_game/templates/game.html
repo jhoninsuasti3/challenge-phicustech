@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Partida de Tic Tac Toe</title>
+</head>
+<body>
+    <h1>Tic Tac Toe</h1>
+
+    <h2>Jugador: {{ request.user.username }}</h2>
+
+    <h3>Partida:</h3>
+    {% if partida %}
+        <p>ID: {{ partida.id }}</p>
+
+        <h2>Partida entre {{ partida.jugador_1.user.username }} y {{ partida.jugador_2.user.username }}</h2>
+        <p>Jugador 1: {{ partida.jugador_1.user.username }}</p>
+        <p>Jugador 2: {{ partida.jugador_2.user.username }}</p>
+        <p>Puntaje Jugador 1: {{ partida.jugador_1.puntuacion }}</p>
+        <p>Puntaje Jugador 2: {{ partida.jugador_2.puntuacion }}</p>
+    {% else %}
+        <p>No hay partida iniciada</p>
+    {% endif %}
+
+    <h3>Tablero:</h3>
+    <div id="tablero">
+        <!-- Aquí podrías generar la cuadrícula del tablero utilizando bucles de Django o JavaScript -->
+        <!-- Cada celda podría tener un atributo onclick que llame a una función JavaScript para realizar movimientos -->
+    </div>
+
+    <script>
+        const partidaId = {{ partida.id if partida else 0 }};
+        const tableroElement = document.getElementById('tablero');
+
+        const socket = new WebSocket(`ws://{{ request.get_host }}/ws/game/${partidaId}/`);
+
+        socket.onmessage = (event) => {
+            const movimiento = JSON.parse(event.data).movimiento;
+            // Actualizar el tablero en el frontend con el movimiento recibido
+            // ...
+        };
+
+        // Agrega lógica para realizar movimientos y enviarlos al servidor
+        // ...
+    </script>
+</body>
+</html>

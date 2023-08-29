@@ -18,6 +18,8 @@ from rest_framework.generics import RetrieveAPIView
 from django.contrib.auth.mixins import LoginRequiredMixin
 
 from django.views import View
+
+from django.views.generic import UpdateView, ListView, TemplateView, CreateView
 from django.urls import reverse
 
 class RegisterUserAPIView(APIView):
@@ -53,10 +55,11 @@ class UserLoginAPIView(APIView):
             jugador.token = token
             jugador.save()
             #Response({'user': user}, status=status.HTTP_200_OK)
-            home_url = reverse('home')
-            return redirect(home_url)  # Redirige a la vista de inicio de partida
+            # CAMBIO: Devuelve un objeto Response con el status code HTTP_302 y la URL de la plantilla home.html en la cabecera Location.
+            return redirect('home')  # Redirige a la vista de inicio de partida
         return render(request, 'login.html', {'error': 'Credenciales inválidas'})
         #return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+
 
 class UserLogoutAPIView(APIView):
     permission_classes = [IsAuthenticated]  # Requiere autenticación para acceder
@@ -78,10 +81,19 @@ class CustomUserListAPIView(APIView):
 
 # Home del proycto
 
-class HomePageView(LoginRequiredMixin, TemplateView):
-    template_name = 'tictactoe_game/home.html'
-    login_url = '/tictactoe_game/home/'  # Personaliza la URL de inicio de sesión
 
+def home_view(request):
+    return render(request, 'home.html')
+
+class HomePageView(TemplateView):
+    template_name = "home.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['usuario_actual'] = self.request.user
+        print("-----------")
+        print(context)
+        return context
 
 
 """
