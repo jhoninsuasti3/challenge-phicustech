@@ -42,6 +42,8 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'tictactoe_game',
     'channels',
+    'corsheaders',
+
 ]
 
 REST_FRAMEWORK = {
@@ -58,6 +60,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'coregame.urls'
@@ -148,3 +151,14 @@ CHANNEL_LAYERS = {
         "BACKEND": "channels.layers.InMemoryChannelLayer",
     },
 }
+
+
+"""
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8000",  # Reemplaza con la URL de tu aplicación web
+]
+
+"""
+
+CSRF_COOKIE_SECURE = False  # Solo para desarrollo, cambiar a True en producción
+SESSION_COOKIE_SECURE = False  # Solo para desarrollo, cambiar a True en producción

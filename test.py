@@ -1,13 +1,10 @@
 import requests
 
-url = "http://localhost:8000/tictactoe_game/check-auth/usuario_uno/"
-
-payload = {}
+url = "http://localhost:8000/tictactoe_game/api/user_details/"
 headers = {
-  'Authorization': 'Bearer 548d4c42965cb063c6f2f7b0abdff3f895f7d21b',
-  'Cookie': 'csrftoken=LPCUtHTGBwSvwPQkDXB6uT1lIDW468y8; sessionid=i2x7y6l8obc4bgtifsw62v10jhkmthdw'
+    "Authorization": "Token 06f30aa82755cec7b35014de5e145f24fb91d792"
 }
 
-response = requests.request("GET", url, headers=headers, data=payload)
-
-print(response.text)
+response = requests.get(url, headers=headers)
+data = response.json()
+print(data)

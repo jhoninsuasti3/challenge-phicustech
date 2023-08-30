@@ -3,7 +3,8 @@ from django.contrib.auth.models import AbstractUser
 
 class CustomUser(AbstractUser):
     email = models.EmailField(unique=True)
-    password = models.CharField(max_length=128)  # Redefinir el campo password
+    password = models.CharField(max_length=128)
+    token = models.CharField( null = True, max_length=50)  # Redefinir el campo password
   # Redefinir el campo password
     def __str__(self):
         return self.username
