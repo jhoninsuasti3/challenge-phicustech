@@ -21,7 +21,7 @@ urlpatterns = [
     #path('homea/', HomePageView.as_view(), name='homea'),
     #path('home/', Home.as_view(), name='home'),
     
-    path('homea/<str:token>', HomePageView.as_view(), name='homea'),
+    path('home/<str:token>', HomePageView.as_view(), name='home'),
     path('api/iniciar_partida/', IniciarPartidaAPIView.as_view(), name='iniciar_partida'),  # Modifica esta línea # Nueva vista
     
     path('realizar_movimiento/<int:partida_id>/', RealizarMovimientoAPIView.as_view(), name='realizar_movimiento'),

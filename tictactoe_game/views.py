@@ -69,7 +69,7 @@ class UserLoginAPIView(APIView):
             u.save()
             # Imprime el valor del campo token
             request.META['HTTP_AUTHORIZATION'] = f'Token {token}'
-            return redirect('homea', token =token)
+            return redirect('home', token =token)
             #context = {'Token': token}
             #return render(request, 'homea.html', context )
             
@@ -127,20 +127,19 @@ class UserDetailsView(APIView):
 
 
 
-
-
 class HomePageView(View):
-    permission_classes = [TokenAuthentication]
-    template_name = "homea.html"
+    permission_classes = (TokenAuthentication, )
+    template_name = "home.html"
     def get(self, request, *args, **kwargs):  # Corregir 'kwarg' a 'kwargs'
         context = self.get_context_data(**kwargs)
         return render(request, self.template_name, context)  # Usar 'self.template_name'
     def get_context_data(self, **kwargs):
         context = {}
-        # Obtener todos los usuarios
         users = CustomUser.objects.all()
         token = self.kwargs.get('token') 
         user = CustomUser.objects.filter(token=token).first()
+        context['token'] = token
+        print(token)
         context['usuario_actual'] = str(user)
         if self.request.user.is_authenticated:
             usuarios_autenticados = CustomUser.objects.filter(is_active=True).values('username', 'email')
@@ -153,13 +152,17 @@ class HomePageView(View):
         context['jugadores_disponibles'] = jugadores_sin_partida
         jugadores_dispo = context['jugadores_disponibles'] = jugadores_sin_partida
         #context['usuarios_autenticados'] = usuarios_autenticados
-        print(context)
+        #print(context)
         return context
     
 # APIS DE LOGICA DE JUEGO
 class IniciarPartidaAPIView(APIView):
+    permission_classes = (TokenAuthentication, )
+    permission_classes = [IsAuthenticated]
     def post(self, request, *args, **kwargs):
-        usuario_actual = request.user
+        token = request.GET.get('token')  # Obtener el token de los parámetros de la URL
+        usuario_actual_username = request.GET.get('usuario_actual')
+        print(token)
         serializer = IniciarPartidaSerializer(data=request.data)
 
         if serializer.is_valid():
@@ -172,12 +175,13 @@ class IniciarPartidaAPIView(APIView):
                 return Response({'error': 'Jugadores no encontrados.'}, status=status.HTTP_404_NOT_FOUND)
 
             partida_existente = Partida.objects.filter(
-                partida_iniciada=True,
-                jugador_1=jugador_1
+                jugador_1=jugador_1,
+                fecha_fin__isnull=True
             ) | Partida.objects.filter(
-                partida_iniciada=True,
-                jugador_2=jugador_1
+                jugador_2=jugador_1,
+                fecha_fin__isnull=True
             )
+
 
             if partida_existente.exists():
                 return Response({'error': 'Ya existe una partida iniciada con este jugador.'}, status=status.HTTP_400_BAD_REQUEST)
