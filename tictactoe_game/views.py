@@ -45,6 +45,7 @@ class RegisterUserAPIView(APIView):
             return redirect('register_success')  # Redirige a una página de éxito
         return render(request, 'register.html', {'errors': serializer.errors})
 
+
 class UserLoginAPIView(APIView):
     def get(self, request, *args, **kwargs):
         return render(request, 'login.html')  # Renderiza el formulario de inicio de sesión
@@ -156,8 +157,41 @@ class HomePageView(View):
         return context
     
 # APIS DE LOGICA DE JUEGO
+
+
+
+class GatewayAPIS(View):
+    def post(self, request, *args, **kwargs):
+        token = self.request.GET.get('token')
+        usuario_actual_username = self.request.GET.get('usuario_actual')
+        print("Espere un momento")
+        print("--"*20)
+        print(f"Usuario: {usuario_actual_username} Token: {token}")
+        print("--"*20)
+        self.enviar_solicitud_iniciar_partida(usuario_actual)
+        return redirect('home')  # Redirige de nuevo a la página de inicio
+
+    def enviar_solicitud_iniciar_partida(self, usuario_actual):
+        try:
+            user_token = Token.objects.get(user=usuario_actual).key
+        except Token.DoesNotExist:
+            user_token = None
+        
+        if user_token:
+            url = 'http://localhost:8000/tictactoe_game/api/iniciar_partida/'
+            headers = {
+                'Authorization': f'Token {user_token}',
+                'Content-Type': 'application/json'
+            }
+            data = {}  # Datos que necesites enviar en la solicitud
+            response = requests.post(url, headers=headers, json=data)
+            return response
+        else:
+            return None  # El usuario no está autenticado o no tiene un token válido
+
+
 class IniciarPartidaAPIView(APIView):
-    permission_classes = (TokenAuthentication, )
+    
     permission_classes = [IsAuthenticated]
     def post(self, request, *args, **kwargs):
         token = request.GET.get('token')  # Obtener el token de los parámetros de la URL

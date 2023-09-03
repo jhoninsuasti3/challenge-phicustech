@@ -1,39 +1,69 @@
-from django.db import models
-from django.contrib.auth.models import AbstractUser
+import random
 
-class CustomUser(AbstractUser):
-    email = models.EmailField(unique=True)
-    password = models.CharField(max_length=128)
-    token = models.CharField( null = True, max_length=50)  # Redefinir el campo password
-  # Redefinir el campo password
-    def __str__(self):
-        return self.username
+class TicTacToe:
+    def __init__(self):
+        self.tablero = [[' ' for _ in range(3)] for _ in range(3)]
+        self.jugadores = []
+        self.jugador_actual = None
 
-class Jugador(models.Model):
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
-    simbolo = models.CharField(max_length=1, choices=[('X', 'X'), ('O', 'O')])
-    puntuacion = models.IntegerField(default=0)
+    def imprimir_tablero(self):
+        print("  0   1   2")
+        for i, fila in enumerate(self.tablero):
+            print(i, end=' ')
+            for j, casilla in enumerate(fila):
+                print(f"| {casilla} ", end='')
+                if j < 2:
+                    print("|", end='')  # Agregar línea vertical entre las casillas
+            print("|\n  -----------")
 
-    def __str__(self):
-        return self.user.username
+    def comprobar_ganador(self, jugador):
+        for fila in self.tablero:
+            if all(casilla == jugador for casilla in fila):
+                return True
+        for columna in range(3):
+            if all(self.tablero[fila][columna] == jugador for fila in range(3)):
+                return True
+        if all(self.tablero[i][i] == jugador for i in range(3)) or all(self.tablero[i][2 - i] == jugador for i in range(3)):
+            return True
+        return False
 
-class Partida(models.Model):
-    jugador_1 = models.ForeignKey(Jugador, on_delete=models.CASCADE, related_name='partidas_jugador_1')
-    jugador_2 = models.ForeignKey(Jugador, on_delete=models.CASCADE, related_name='partidas_jugador_2')
-    turno = models.ForeignKey(Jugador, on_delete=models.CASCADE, related_name='partidas_turno')
-    ganador = models.ForeignKey(Jugador, on_delete=models.SET_NULL, null=True, blank=True, related_name='partidas_ganadas')
-    fecha_inicio = models.DateTimeField(auto_now_add=True)
-    fecha_fin = models.DateTimeField(null=True, blank=True)
+    def iniciar_juego(self):
+        for i in range(2):
+            nombre_jugador = input(f"Nombre del Jugador {i + 1}: ")
+            self.jugadores.append((nombre_jugador, 'X' if i == 0 else 'O'))
 
-    def __str__(self):
-        return f"Partida entre {self.jugador_1} y {self.jugador_2}"
+        random.shuffle(self.jugadores)
+        self.jugador_actual = self.jugadores[0]
 
-class Movimiento(models.Model):
-    partida = models.ForeignKey(Partida, on_delete=models.CASCADE)
-    jugador = models.ForeignKey(Jugador, on_delete=models.CASCADE)
-    fila = models.IntegerField()
-    columna = models.IntegerField()
-    fecha = models.DateTimeField(auto_now_add=True)
+        print(f"¡Bienvenido al juego Tic-Tac-Toe, {self.jugadores[0][0]} y {self.jugadores[1][0]}!")
 
-    def __str__(self):
-        return f"Movimiento de {self.jugador} en ({self.fila}, {self.columna})"
+    def jugar(self):
+        for _ in range(9):
+            self.imprimir_tablero()
+            jugador_actual_nombre, jugador_actual_ficha = self.jugador_actual
+
+            while True:
+                try:
+                    fila, columna = map(int, input(f"Turno de {jugador_actual_nombre} ({jugador_actual_ficha}): Ingrese fila y columna (0-2) separadas por espacio: ").split())
+                    if 0 <= fila <= 2 and 0 <= columna <= 2 and self.tablero[fila][columna] == ' ':
+                        self.tablero[fila][columna] = jugador_actual_ficha
+                        break
+                    else:
+                        print("Movimiento no válido. Intente de nuevo.")
+                except ValueError:
+                    print("Entrada no válida. Ingrese dos números separados por espacio.")
+
+            if self.comprobar_ganador(jugador_actual_ficha):
+                self.imprimir_tablero()
+                print(f"¡El jugador {jugador_actual_nombre} ({jugador_actual_ficha}) ha ganado!")
+                return
+
+            self.jugador_actual = self.jugadores[1] if self.jugador_actual == self.jugadores[0] else self.jugadores[0]
+
+        self.imprimir_tablero()
+        print("¡Empate!")
+
+if __name__ == "__main__":
+    juego = TicTacToe()
+    juego.iniciar_juego()
+    juego.jugar()

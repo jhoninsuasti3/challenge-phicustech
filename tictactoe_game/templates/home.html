@@ -7,7 +7,7 @@
     <h1>Iniciar Partida</h1>
     <p>Usuario actual: {{ usuario_actual }}</p>
     
-    <form action="{% url 'iniciar_partida' %}?{{ token }}&{{ usuario_actual }}" method="post">
+    <form action="{% url 'gateway' %}?{{ token }}&{{ usuario_actual }}" method="post">
         {% csrf_token %}
         
         <p>Jugador 1: {{ usuario_actual }}</p>

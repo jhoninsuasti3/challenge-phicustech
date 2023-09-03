@@ -1,106 +1,77 @@
-import random
-import os
+class TicTacToeGame:
+    def __init__(self):
+        self.tablero = [[" " for _ in range(3)] for _ in range(3)]
+        self.jugadores = []
+        self.turno = 0
+        self.movimientos_realizados = set()
 
-def inicializar_juego():
-    """Función que incializa los valores del juego"""
-    juego_en_curso = True
-    jugadores = [[input("Jugador 1: "),"X"], [input("Jugador 2: "),"O"]]
-    jugador_actual = random.randint(0, 1)
-    tablero = [["-","-","-"],["-","-","-"],["-","-","-"]]
-    return juego_en_curso, jugadores, jugador_actual, tablero
+    def imprimir_tablero(self):
+        print("  0   1   2")
+        for i, fila in enumerate(self.tablero):
+            print(f"{i} {' | '.join(fila)}")
+            if i < 2:
+                print("  " + "-" * 9)
 
-def actualizar_tablero(jugador, coordenada_fila, coordenada_columna, tablero_actual):
-    """Actualiza el tablero con la acción del jugador actual"""
-    tablero_actual[coordenada_fila - 1][coordenada_columna - 1] = jugador[1]
-    return tablero_actual
+    def verificar_ganador(self, jugador):
+        # Verificar filas
+        for fila in self.tablero:
+            if all(cell == jugador for cell in fila):
+                return True
 
-def tablero_completo(tablero_actual):
-    """Comprueba si el tablero está completo, devuelve True o False"""
-    for linea in tablero_actual:
-        for celda in linea:
-            if celda == '-':
-                return False
-    return True
+        # Verificar columnas
+        for col in range(3):
+            if all(self.tablero[row][col] == jugador for row in range(3)):
+                return True
 
-def comprobar_ganador(jugador, tablero_actual):
-    """Comprueba si ha ganado el jugador actual, devuelve True o False"""
-    #Comprobar por filas
-    for i in range(3):
-        ganador = True
-        for x in range(3):
-            if tablero_actual[i][x] != jugador[1]:
-                ganador = False
-                break
-        if ganador:
-            return ganador
+        # Verificar diagonales
+        if all(self.tablero[i][i] == jugador for i in range(3)) or all(self.tablero[i][2 - i] == jugador for i in range(3)):
+            return True
 
-    #Comprobar por columnas
-    for i in range(3):
-        ganador = True
-        for x in range(3):
-            if tablero_actual[x][i] != jugador[1]:
-                ganador = False
-                break
-        if ganador:
-            return ganador
+        return False
 
-    #Comprobar por diagonales
-    ganador = True
-    for i in range(3):
-        if tablero_actual[i][i] != jugador[1]:
-            ganador = False
-            break
-    if ganador:
-        return ganador
+    def realizar_movimiento(self, fila, columna, ficha):
+        if self.tablero[fila][columna] != " ":
+            return False  # Casilla ocupada
+        self.tablero[fila][columna] = ficha
+        self.movimientos_realizados.add((fila, columna))
+        return True
 
-    ganador = True
-    for i in range(3):
-        if tablero_actual[i][3 - 1 - i] != jugador[1]:
-            ganador = False
-            break
-    if ganador:
-        return ganador
-    
-    return False
+    def juego_terminado(self):
+        return len(self.movimientos_realizados) == 9
 
-juego_en_curso, jugadores, jugador_actual, tablero = inicializar_juego()
+    def jugar(self):
+        self.jugadores.append(input("Ingresa el nombre del Jugador 1 (X): "))
+        self.jugadores.append(input("Ingresa el nombre del Jugador 2 (O): "))
 
-while juego_en_curso:
-    if tablero_completo(tablero):
-        juego_en_curso = False
-        os.system("cls")
-        print("Fin del juego, no hay ganador")
-        break
+        while True:
+            jugador_actual = self.jugadores[self.turno % 2]
+            ficha = "X" if self.turno % 2 == 0 else "O"
 
-    os.system("cls")
-    #Nuevo turno
-    print("Turno de: " + jugadores[jugador_actual][0])
+            self.imprimir_tablero()
+            print(f"Turno de {jugador_actual} ({ficha})")
+            print("Ingresa tu movimiento en el formato 'fila,columna'.")
 
-    #Dibujar tablero
-    print("0 1 2 3")
-    coordenadas_vertical = 1
-    for linea in tablero:
-        print(coordenadas_vertical, linea[0], linea[1], linea[2])
-        coordenadas_vertical += 1
+            movimiento = input()
+            try:
+                fila, columna = map(int, movimiento.split(","))
+            except ValueError:
+                print("Entrada no válida. Utiliza el formato 'fila,columna'.")
+                continue
 
-    #Selección de casilla
-    coordenada_fila, coordenada_columna = list(map(int, input("Elige coordenadas: ")))
-    #Actuaizar tablero
-    tablero = actualizar_tablero(jugadores[jugador_actual], coordenada_fila, coordenada_columna, tablero)
+            if (fila, columna) in self.movimientos_realizados or fila < 0 or fila > 2 or columna < 0 or columna > 2:
+                print("Movimiento inválido. Inténtalo de nuevo.")
+            else:
+                if self.realizar_movimiento(fila, columna, ficha):
+                    if self.verificar_ganador(ficha):
+                        self.imprimir_tablero()
+                        print(f"{jugador_actual} ({ficha}) gana. ¡Felicidades!")
+                        return
+                    if self.juego_terminado():
+                        self.imprimir_tablero()
+                        print("El juego terminó en empate.")
+                        return
+                    self.turno += 1
 
-    #Comprobamos si ha ganado
-    if comprobar_ganador(jugadores[jugador_actual], tablero):
-        juego_en_curso = False
-
-        #Dibujar tablero
-        os.system("cls")
-        print("0 1 2 3")
-        coordenadas_vertical = 1
-        for linea in tablero:
-            print(coordenadas_vertical, linea[0], linea[1], linea[2])
-            coordenadas_vertical += 1
-
-        print("Ganador: ",jugadores[jugador_actual][0])
-
-    #Cambio de jugador
-    jugador_actual = 1 if jugador_actual == 0 else 0
+if __name__ == "__main__":
+    juego = TicTacToeGame()
+    juego.jugar()
