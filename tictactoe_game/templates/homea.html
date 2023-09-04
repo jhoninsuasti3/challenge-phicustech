@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Iniciar Partida</title>
+</head>
+<body>
+    <h1>Iniciar Partida</h1>
+    <p>Usuario actual: {{ usuario_actual }}</p>
+    
+    <form action="{% url 'iniciar_partida' %}" method="post">
+        {% csrf_token %}
+        
+        <p>Jugador 1: {{ usuario_actual }}</p>
+        
+        <label for="jugador2">Jugador 2:</label>
+        <select name="jugador2" id="jugador2">
+            {% for jugador in jugadores_disponibles %}
+                <option value="{{ jugador }}">{{ jugador }}</option>
+            {% endfor %}
+        </select>
+        
+        <button type="submit">Iniciar Partida</button>
+    </form>
+</body>
+</html>
+
+
+
+
+
