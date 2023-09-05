@@ -38,6 +38,8 @@ partidas/jugadores.
 
 # Instalacion 
 
+-- python3.9 -m venv venv
+
 1. Clona el repositorio a local:
 ```
 git clone https://github.com/jhoninsuasti3/challenge-phicustech.git
