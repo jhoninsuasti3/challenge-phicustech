@@ -11,8 +11,7 @@ from rest_framework.authentication import TokenAuthentication
 from .serializers import UserSerializer, CustomUserListSerializer, IniciarPartidaSerializer
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.authtoken.models import Token
-from django.contrib.auth import authenticate
-from .models import CustomUser, Partida, Jugador
+from django.contrib.auth import authenticate, login
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import TemplateView
@@ -34,6 +33,10 @@ from rest_framework.authentication import get_authorization_header
 from django.http import HttpResponseForbidden
 
 from django.views import generic
+
+from .models import CustomUser, Partida, Jugador, Movimiento
+from .utils import TicTacToeGame
+
 
 #Inicio de manejo de usuarios
 class RegisterUserAPIView(APIView):
@@ -63,10 +66,12 @@ class UserLoginAPIView(APIView):
                 pass
         if not user:
             user = authenticate(username=username, password=password)
+            
         if user:
             token, _ = Token.objects.get_or_create(user=user)
             # Asociar el token al usuario correspondiente
             u = CustomUser.objects.get(username=user)
+            login(request, u)
             u.token = token.key
             u.save()
             # Imprime el valor del campo token
@@ -90,20 +95,16 @@ class UserLogoutAPIView(APIView):
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
 # End manejo de usuarios
 
 
 
+# APIS DE AYUDA
 class CustomUserListAPIView(APIView):
     def get(self, request, format=None):
         users = CustomUser.objects.all()
         serializer = CustomUserListSerializer(users, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
-
-# Home del proycto
-def home_view(request):
-    return render(request, 'home.html')
 
 class UserDetailsView(APIView):
     permission_classes = [IsAuthenticated]
@@ -127,10 +128,10 @@ class UserDetailsView(APIView):
             return Response(user_details, status=status.HTTP_200_OK)
         else:
             return Response({'error': 'No se ha autenticado ningún usuario.'}, status=status.HTTP_401_UNAUTHORIZED)
-
+# FIN APIS DE AYUDA
 
 class HomePageView(View):
-    authentication_classes = (TokenAuthentication,)
+    #authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 
     template_name = "home.html"
@@ -161,6 +162,121 @@ class HomePageView(View):
     
 # APIS DE LOGICA DE JUEGO
 
+
+class IniciarPartidaAPIView(APIView):
+    #authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request, *args, **kwargs):
+        serializer = IniciarPartidaSerializer(data=request.data)
+        from pprint import pprint
+        pprint(serializer)
+        if serializer.is_valid():
+            jugador_2_username = serializer.validated_data['jugador_2']
+            usuario_actual = self.request.user
+            print(usuario_actual)
+            try:
+                jugador_1 = Jugador.objects.get(user=usuario_actual)
+                jugador_2 = Jugador.objects.get(user__username=jugador_2_username)
+            except Jugador.DoesNotExist:
+                return Response({'error': 'Jugadores no encontrados.'}, status=status.HTTP_404_NOT_FOUND)
+            partida_existente = Partida.objects.filter( jugador_1=jugador_1)
+            primera_partida = partida_existente.first()
+            
+            partida_existente = Partida.objects.filter(
+                jugador_1=jugador_1,
+                fecha_fin__isnull=True
+            ) | Partida.objects.filter(
+                jugador_2=jugador_1,
+                fecha_fin__isnull=True
+            )
+            if partida_existente.exists():
+                return Response({'error': 'Ya existe una partida iniciada con este jugador.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Crear la partida y establecer jugador 1, jugador 2 y turno
+            partida = Partida.objects.create(
+                jugador_1=jugador_1,
+                jugador_2=jugador_2,
+                turno=jugador_1,
+            )
+            print(partida.id)
+            # Redirigir al usuario a la página de 'game' con el ID de la partida
+            return redirect('game', partida_id=partida.id)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class MostrarTablero(View):
+    def get(self, request, partida_id):
+        partida = Partida.objects.get(id=partida_id)
+        
+        # Cargar los movimientos desde la base de datos para reconstruir el tablero
+        movimientos = Movimiento.objects.filter(partida=partida)
+        juego = TicTacToeGame(partida.jugador_1.user.username, partida.jugador_2.user.username)
+        
+        # Reconstruir el tablero y el estado del juego a partir de los movimientos
+        for movimiento in movimientos:
+            fila = movimiento.fila
+            columna = movimiento.columna
+            jugador = movimiento.jugador.user.username
+            juego.realizar_movimiento_web(fila, columna, jugador)
+        
+        # Serializar el estado del juego y renderizar la plantilla
+        estado_del_juego = juego.serializar_estado()
+        return render(request, 'game.html', {
+            'partida': partida,
+            'estado_del_juego': estado_del_juego,
+            'juego': juego,
+        })
+
+
+
+class RealizarMovimientoAPIView(View):
+    def post(self, request, partida_id):
+        partida = Partida.objects.get(id=partida_id)
+        fila = request.POST.get('fila')
+        columna = request.POST.get('columna')
+        jugador_actual = request.user.username
+        juego = TicTacToeGame(partida.jugador_1.user.username, partida.jugador_2.user.username)
+        
+        # Validar el movimiento
+        if juego.realizar_movimiento_web(int(fila), int(columna), jugador_actual):
+            # Guardar el movimiento en la base de datos
+            Movimiento.objects.create(partida=partida, jugador=request.user.jugador, fila=int(fila), columna=int(columna))
+            
+            # Verificar el ganador y actualizar la partida si es necesario
+            ganador = juego.verificar_ganador()
+            if ganador:
+                partida.ganador = partida.jugador_1 if ganador == partida.jugador_1.user.username else partida.jugador_2
+                partida.fecha_fin = timezone.now()
+                partida.save()
+            elif juego.juego_terminado():
+                partida.fecha_fin = timezone.now()
+                partida.save()
+
+            # Redirigir a la página de 'game' con el ID de la partida
+            return redirect('game', partida_id=partida.id)
+        else:
+            # Manejar el caso de un movimiento inválido (puedes mostrar un mensaje de error)
+            return redirect('game', partida_id=partida.id, mensaje="Movimiento inválido")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class GatewayAPIS(View):
     def post(self, request, *args, **kwargs):
         token = self.request.GET.get('token')
@@ -190,130 +306,8 @@ class GatewayAPIS(View):
         else:
             return None  # El usuario no está autenticado o no tiene un token válido
 
-
-class IniciarPartidaAPIView(APIView):
-    #authentication_classes = (TokenAuthentication,)
-    #permission_classes = (IsAuthenticated,)
-
-    def post(self, request, *args, **kwargs):
-        print("Holita")
-        serializer = IniciarPartidaSerializer(data=request.data)
-
-        if serializer.is_valid():
-            jugador_2_username = serializer.validated_data['jugador_2']
-            usuario_actual = self.request.user
-            try:
-                jugador_1 = Jugador.objects.get(user=usuario_actual)
-                jugador_2 = Jugador.objects.get(user__username=jugador_2_username)
-            except Jugador.DoesNotExist:
-                return Response({'error': 'Jugadores no encontrados.'}, status=status.HTTP_404_NOT_FOUND)
-            partida_existente = Partida.objects.filter( jugador_1=jugador_1)
-            primera_partida = partida_existente.first()
-            if primera_partida:
-                # Acceder a los atributos de la primera partida
-                print(primera_partida.id)
-            """
-            partida_existente = Partida.objects.filter(
-                jugador_1=jugador_1,
-                fecha_fin__isnull=True
-            ) | Partida.objects.filter(
-                jugador_2=jugador_1,
-                fecha_fin__isnull=True
-            )
-            """
-            if partida_existente.exists():
-                return Response({'error': 'Ya existe una partida iniciada con este jugador.'}, status=status.HTTP_400_BAD_REQUEST)
-
-            # Crear la partida y establecer jugador 1, jugador 2 y turno
-            partida = Partida.objects.create(
-                jugador_1=jugador_1,
-                jugador_2=jugador_2,
-                turno=jugador_1,
-            )
-
-            # Redirigir al usuario a la página de 'game' con el ID de la partida
-            return redirect('game', partida_id=partida.id)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-
-
-"""
-class IniciarPartidaView(RetrieveAPIView):
-    queryset = Partida.objects.all()
-    serializer_class = IniciarPartidaSerializer
-    template_name = 'game.html'
-"""
-
-class MostrarTablero(View):
-    def get(self, request, partida_id):
-        partida = Partida.objects.get(id=partida_id)
-        
-        # Cargar los movimientos desde la base de datos para reconstruir el tablero
-        movimientos = Movimiento.objects.filter(partida=partida)
-        juego = TicTacToeGame(partida.jugador_1.user.username, partida.jugador_2.user.username)
-        
-        # Reconstruir el tablero y el estado del juego a partir de los movimientos
-        for movimiento in movimientos:
-            fila = movimiento.fila
-            columna = movimiento.columna
-            jugador = movimiento.jugador.user.username
-            juego.realizar_movimiento_web(fila, columna, jugador)
-        
-        # Serializar el estado del juego y renderizar la plantilla
-        estado_del_juego = juego.serializar_estado()
-        return render(request, 'game.html', {
-            'partida': partida,
-            'estado_del_juego': estado_del_juego,
-            'juego': juego,
-        })
-class RealizarMovimientoAPIView(APIView):
-    def post(self, request, partida_id, *args, **kwargs):
-        partida = Partida.objects.get(pk=partida_id)
-        jugador = partida.turno
-
-        fila = request.data.get('fila')
-        columna = request.data.get('columna')
-
-        # Realizar validaciones y lógica de movimiento
-        # ...
-
-        movimiento = Movimiento.objects.create(partida=partida, jugador=jugador, fila=fila, columna=columna)
-        movimiento_data = {'fila': fila, 'columna': columna, 'jugador': jugador.simbolo}
-
-        # Notificar a los consumidores sobre el movimiento
-        async_to_sync(self.notify_consumers)(partida_id, movimiento_data)
-
-        return Response(movimiento_data, status=status.HTTP_201_CREATED)
-
-    def notify_consumers(self, partida_id, movimiento_data):
-        partida_group_name = f"partida_{partida_id}"
-        channel_layer = get_channel_layer()
-
-        async_to_sync(channel_layer.group_send)(
-            partida_group_name,
-            {
-                'type': 'movimiento',
-                'movimiento': movimiento_data
-            }
-        )
-
-    def notify_consumers(self, partida_id, movimiento_data):
-        partida_group_name = f"partida_{partida_id}"
-        channel_layer = get_channel_layer()
-
-        async_to_sync(channel_layer.group_send)(
-            partida_group_name,
-            {
-                'type': 'movimiento',
-                'movimiento': movimiento_data
-            }
-        )
-
 def register_success_view(request):
     return render(request, 'register_success.html')
-
 
 class Obtain_Values_APIS:
     def __init__(self, url, token):

@@ -2,7 +2,7 @@
 
 from django.urls import path
 from .views import  RegisterUserAPIView, UserLoginAPIView, UserLogoutAPIView, CustomUserListAPIView, IniciarPartidaAPIView, RealizarMovimientoAPIView, HomePageView, UserDetailsView, GatewayAPIS, MostrarTablero
-from .views import register_success_view, home_view
+from .views import register_success_view
 
 from rest_framework.documentation import include_docs_urls
 

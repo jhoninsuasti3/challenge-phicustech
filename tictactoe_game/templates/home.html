@@ -13,8 +13,8 @@
         <p>Jugador 1: {{ usuario_actual }}</p>
         <p>Token: {{ token }}</p>
         
-        <label for="jugador2">Jugador 2:</label>
-        <select name="jugador2" id="jugador2">
+        <label for="jugador_2">Jugador 2:</label>
+        <select name="jugador_2" id="jugador_2">
             {% for jugador in jugadores_disponibles %}
                 <option value="{{ jugador }}">{{ jugador }}</option>
             {% endfor %}
