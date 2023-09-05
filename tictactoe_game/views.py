@@ -34,6 +34,8 @@ from rest_framework.authentication import get_authorization_header
 from django.http import HttpResponseForbidden
 
 from django.views import generic
+
+#Inicio de manejo de usuarios
 class RegisterUserAPIView(APIView):
 
     def get(self, request, *args, **kwargs):
@@ -44,7 +46,6 @@ class RegisterUserAPIView(APIView):
             serializer.save()
             return redirect('register_success')  # Redirige a una página de éxito
         return render(request, 'register.html', {'errors': serializer.errors})
-
 
 class UserLoginAPIView(APIView):
     def get(self, request, *args, **kwargs):
@@ -78,7 +79,6 @@ class UserLoginAPIView(APIView):
         return render(request, 'login.html', {'error': 'Credenciales inválidas'})
         #return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
-
 class UserLogoutAPIView(APIView):
     authentication_classes = (SessionAuthentication )
     permission_classes = [IsAuthenticated]  # Requiere autenticación para acceder
@@ -89,6 +89,11 @@ class UserLogoutAPIView(APIView):
             return Response({'message': 'Successfully logged out.'}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# End manejo de usuarios
+
+
 
 class CustomUserListAPIView(APIView):
     def get(self, request, format=None):
@@ -124,12 +129,10 @@ class UserDetailsView(APIView):
             return Response({'error': 'No se ha autenticado ningún usuario.'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
-
-
-
-
 class HomePageView(View):
-    permission_classes = (TokenAuthentication, )
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
     template_name = "home.html"
     def get(self, request, *args, **kwargs):  # Corregir 'kwarg' a 'kwargs'
         context = self.get_context_data(**kwargs)
@@ -157,8 +160,6 @@ class HomePageView(View):
         return context
     
 # APIS DE LOGICA DE JUEGO
-
-
 
 class GatewayAPIS(View):
     def post(self, request, *args, **kwargs):

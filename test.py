@@ -1,3 +1,4 @@
+"""
 import requests
 
 url = "http://localhost:8000/tictactoe_game/api/user_details/"
@@ -8,3 +9,4 @@ headers = {
 response = requests.get(url, headers=headers)
 data = response.json()
 print(data)
+"""

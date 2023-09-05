@@ -17,16 +17,13 @@ class TicTacToeGame:
         for fila in self.tablero:
             if all(cell == jugador for cell in fila):
                 return True
-
         # Verificar columnas
         for col in range(3):
             if all(self.tablero[row][col] == jugador for row in range(3)):
                 return True
-
         # Verificar diagonales
         if all(self.tablero[i][i] == jugador for i in range(3)) or all(self.tablero[i][2 - i] == jugador for i in range(3)):
             return True
-
         return False
 
     def realizar_movimiento(self, fila, columna, ficha):

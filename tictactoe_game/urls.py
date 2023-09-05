@@ -4,6 +4,8 @@ from django.urls import path
 from .views import  RegisterUserAPIView, UserLoginAPIView, UserLogoutAPIView, CustomUserListAPIView, IniciarPartidaAPIView, RealizarMovimientoAPIView, IniciarPartidaView, HomePageView, UserDetailsView, GatewayAPIS
 from .views import register_success_view, home_view
 
+from rest_framework.documentation import include_docs_urls
+
 urlpatterns = [
     path('register/', RegisterUserAPIView.as_view(), name='register'),
     path('login/', UserLoginAPIView.as_view(), name='login'),
@@ -21,4 +23,7 @@ urlpatterns = [
     path('api/iniciar_partida/', IniciarPartidaAPIView.as_view(), name='iniciar_partida'),  # Modifica esta línea # Nueva vista
     path('realizar_movimiento/<int:partida_id>/', RealizarMovimientoAPIView.as_view(), name='realizar_movimiento'),
     path('gateway/', GatewayAPIS.as_view(), name='gateway'),
+
+    path('documentation/', include_docs_urls(title='TicTacToe Game')),
+
 ]
