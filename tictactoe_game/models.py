@@ -24,7 +24,7 @@ class Partida(models.Model):
     ganador = models.ForeignKey(Jugador, on_delete=models.SET_NULL, null=True, blank=True, related_name='partidas_ganadas')
     fecha_inicio = models.DateTimeField(auto_now_add=True)
     fecha_fin = models.DateTimeField(null=True, blank=True)
-
+    log = models.CharField( null = True, max_length=150) 
     def __str__(self):
         return f"Partida entre {self.jugador_1} y {self.jugador_2}"
 

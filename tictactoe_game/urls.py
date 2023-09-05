@@ -1,7 +1,7 @@
 # accounts/urls.py
 
 from django.urls import path
-from .views import  RegisterUserAPIView, UserLoginAPIView, UserLogoutAPIView, CustomUserListAPIView, IniciarPartidaAPIView, RealizarMovimientoAPIView, IniciarPartidaView, HomePageView, UserDetailsView, GatewayAPIS
+from .views import  RegisterUserAPIView, UserLoginAPIView, UserLogoutAPIView, CustomUserListAPIView, IniciarPartidaAPIView, RealizarMovimientoAPIView, HomePageView, UserDetailsView, GatewayAPIS, MostrarTablero
 from .views import register_success_view, home_view
 
 from rest_framework.documentation import include_docs_urls
@@ -20,6 +20,7 @@ urlpatterns = [
     #path('homea/', HomePageView.as_view(), name='homea'),
     #path('home/', Home.as_view(), name='home'),
     path('home/<str:token>', HomePageView.as_view(), name='home'),
+    path('game/<int:partida_id>/', MostrarTablero.as_view(), name='game'),
     path('api/iniciar_partida/', IniciarPartidaAPIView.as_view(), name='iniciar_partida'),  # Modifica esta línea # Nueva vista
     path('realizar_movimiento/<int:partida_id>/', RealizarMovimientoAPIView.as_view(), name='realizar_movimiento'),
     path('gateway/', GatewayAPIS.as_view(), name='gateway'),

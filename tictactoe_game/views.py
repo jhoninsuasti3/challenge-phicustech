@@ -192,23 +192,27 @@ class GatewayAPIS(View):
 
 
 class IniciarPartidaAPIView(APIView):
-    
-    permission_classes = [IsAuthenticated]
+    #authentication_classes = (TokenAuthentication,)
+    #permission_classes = (IsAuthenticated,)
+
     def post(self, request, *args, **kwargs):
-        token = request.GET.get('token')  # Obtener el token de los parámetros de la URL
-        usuario_actual_username = request.GET.get('usuario_actual')
-        print(token)
+        print("Holita")
         serializer = IniciarPartidaSerializer(data=request.data)
 
         if serializer.is_valid():
             jugador_2_username = serializer.validated_data['jugador_2']
-
+            usuario_actual = self.request.user
             try:
                 jugador_1 = Jugador.objects.get(user=usuario_actual)
                 jugador_2 = Jugador.objects.get(user__username=jugador_2_username)
             except Jugador.DoesNotExist:
                 return Response({'error': 'Jugadores no encontrados.'}, status=status.HTTP_404_NOT_FOUND)
-
+            partida_existente = Partida.objects.filter( jugador_1=jugador_1)
+            primera_partida = partida_existente.first()
+            if primera_partida:
+                # Acceder a los atributos de la primera partida
+                print(primera_partida.id)
+            """
             partida_existente = Partida.objects.filter(
                 jugador_1=jugador_1,
                 fecha_fin__isnull=True
@@ -216,26 +220,54 @@ class IniciarPartidaAPIView(APIView):
                 jugador_2=jugador_1,
                 fecha_fin__isnull=True
             )
-
-
+            """
             if partida_existente.exists():
                 return Response({'error': 'Ya existe una partida iniciada con este jugador.'}, status=status.HTTP_400_BAD_REQUEST)
+
             # Crear la partida y establecer jugador 1, jugador 2 y turno
             partida = Partida.objects.create(
                 jugador_1=jugador_1,
                 jugador_2=jugador_2,
                 turno=jugador_1,
-                partida_iniciada=True
             )
-            return Response({'message': 'Partida iniciada exitosamente.'}, status=status.HTTP_201_CREATED)
+
+            # Redirigir al usuario a la página de 'game' con el ID de la partida
+            return redirect('game', partida_id=partida.id)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+
+
+"""
 class IniciarPartidaView(RetrieveAPIView):
     queryset = Partida.objects.all()
     serializer_class = IniciarPartidaSerializer
     template_name = 'game.html'
+"""
 
+class MostrarTablero(View):
+    def get(self, request, partida_id):
+        partida = Partida.objects.get(id=partida_id)
+        
+        # Cargar los movimientos desde la base de datos para reconstruir el tablero
+        movimientos = Movimiento.objects.filter(partida=partida)
+        juego = TicTacToeGame(partida.jugador_1.user.username, partida.jugador_2.user.username)
+        
+        # Reconstruir el tablero y el estado del juego a partir de los movimientos
+        for movimiento in movimientos:
+            fila = movimiento.fila
+            columna = movimiento.columna
+            jugador = movimiento.jugador.user.username
+            juego.realizar_movimiento_web(fila, columna, jugador)
+        
+        # Serializar el estado del juego y renderizar la plantilla
+        estado_del_juego = juego.serializar_estado()
+        return render(request, 'game.html', {
+            'partida': partida,
+            'estado_del_juego': estado_del_juego,
+            'juego': juego,
+        })
 class RealizarMovimientoAPIView(APIView):
     def post(self, request, partida_id, *args, **kwargs):
         partida = Partida.objects.get(pk=partida_id)
