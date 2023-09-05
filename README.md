@@ -37,7 +37,7 @@ partidas/jugadores.
 * [Django](https://www.djangoproject.com/download/).
 
 # Instalacion 
-
+https://www.python.org/downloads/release/python-3917/
 -- python3.9 -m venv venv
 
 1. Clona el repositorio a local:
