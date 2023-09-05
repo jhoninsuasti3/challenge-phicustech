@@ -36,6 +36,17 @@ partidas/jugadores.
 * [Python](https://www.python.org/downloads/).
 * [Django](https://www.djangoproject.com/download/).
 
+# For mac
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+brew install python@3.9
+
+brew list | grep python
+
+python3.9 -m venv myenv
+
+source myenv/bin/activate
+
 # Instalacion 
 https://www.python.org/downloads/release/python-3917/
 -- python3.9 -m venv venv
